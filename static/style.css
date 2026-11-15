@@ -408,7 +408,32 @@ kbd {
   border-radius: 8px;
   padding: 8px;
   min-height: 200px;
-  overflow-x: auto;
+}
+
+/* Fix Diff2Html line number drift during scrolling */
+.diff-viewer .d2h-code-linenumber,
+.diff-viewer .d2h-code-side-linenumber {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: table-cell;
+  vertical-align: top;
+}
+
+.diff-viewer .d2h-code-linenumber {
+  width: 7.5em;
+  min-width: 7.5em;
+}
+
+.diff-viewer .d2h-code-side-linenumber {
+  width: 4em;
+  min-width: 4em;
+}
+
+.diff-viewer .d2h-code-line,
+.diff-viewer .d2h-code-side-line {
+  padding: 0 0.75em;
+  width: auto;
 }
 
 .plain-diff-file {
