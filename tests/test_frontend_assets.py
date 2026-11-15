@@ -55,6 +55,23 @@ class TestFrontendAssets(unittest.TestCase):
     def test_style_css_served(self) -> None:
         css = self._get_text("/style.css")
         self.assertIn(".workspace-layout", css)
+        self.assertIn(".badge-command", css)
+        self.assertIn(".badge-manual", css)
+        self.assertIn(".badge-test", css)
+
+    def test_app_js_contains_commit_menu_badges_shortcuts_and_storage(self) -> None:
+        js = self._get_text("/app.js")
+        for token in [
+            "🤖 Command",
+            "✍️ Manual",
+            "✅ Test",
+            "localStorage",
+            "ArrowDown",
+            "ArrowUp",
+            'event.key === "r"',
+            "Reviewed",
+        ]:
+            self.assertIn(token, js)
 
 
 if __name__ == "__main__":

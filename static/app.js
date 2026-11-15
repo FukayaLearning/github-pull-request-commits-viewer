@@ -1,3 +1,5 @@
+const REVIEWED_STORAGE_KEY = "local-pr-viewer:reviewed-commits";
+
 const state = {
   repoInfo: null,
   prs: [],
@@ -7,7 +9,35 @@ const state = {
   selectedSha: null,
   diffMode: "side-by-side",
   ignoreWhitespace: false,
+  reviewedMap: loadReviewedMap(),
 };
+
+function loadReviewedMap() {
+  try {
+    const raw = window.localStorage.getItem(REVIEWED_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveReviewedMap() {
+  try {
+    window.localStorage.setItem(REVIEWED_STORAGE_KEY, JSON.stringify(state.reviewedMap));
+  } catch {
+    // Ignore storage quota or private mode errors
+  }
+}
+
+function getBadgeMeta(changeType) {
+  if (changeType === "command") {
+    return { label: "🤖 Command", className: "badge-command" };
+  }
+  if (changeType === "test") {
+    return { label: "✅ Test", className: "badge-test" };
+  }
+  return { label: "✍️ Manual", className: "badge-manual" };
+}
 
 const els = {
   repoName: document.getElementById("repo-name"),
@@ -83,9 +113,49 @@ function populatePrSelect(prs, fallback, reason) {
   }
 }
 
-function renderCommitListBasic() {
+function updateReviewProgress() {
+  const total = state.commits.length;
+  const reviewedCount = state.commits.filter((c) => Boolean(state.reviewedMap[c.sha])).length;
+  els.reviewProgress.textContent = `${reviewedCount} / ${total} Reviewed`;
+}
+
+function toggleReviewed(sha) {
+  if (!sha) {
+    return;
+  }
+  if (state.reviewedMap[sha]) {
+    delete state.reviewedMap[sha];
+  } else {
+    state.reviewedMap[sha] = true;
+  }
+  saveReviewedMap();
+  renderCommitList();
+}
+
+function selectCommit(sha) {
+  state.selectedSha = sha;
+  renderCommitList();
+  const commit = state.commits.find((c) => c.sha === sha);
+  if (commit) {
+    els.commitSummary.textContent = `${commit.short_sha}: ${commit.subject}`;
+  }
+}
+
+function selectCommitByOffset(delta) {
+  if (state.commits.length === 0) {
+    return;
+  }
+  const currentIndex = state.commits.findIndex((c) => c.sha === state.selectedSha);
+  const baseIndex = currentIndex === -1 ? 0 : currentIndex;
+  const nextIndex = Math.max(0, Math.min(state.commits.length - 1, baseIndex + delta));
+  if (nextIndex !== currentIndex || currentIndex === -1) {
+    selectCommit(state.commits[nextIndex].sha);
+  }
+}
+
+function renderCommitList() {
   els.commitList.innerHTML = "";
-  els.reviewProgress.textContent = `0 / ${state.commits.length} Reviewed`;
+  updateReviewProgress();
 
   if (state.commits.length === 0) {
     const empty = document.createElement("li");
@@ -98,21 +168,70 @@ function renderCommitListBasic() {
   }
 
   for (const commit of state.commits) {
+    const isSelected = commit.sha === state.selectedSha;
+    const isReviewed = Boolean(state.reviewedMap[commit.sha]);
+    const badge = getBadgeMeta(commit.change_type);
+
     const li = document.createElement("li");
+    li.className = `commit-item${isSelected ? " active" : ""}${isReviewed ? " reviewed" : ""}`;
     li.dataset.sha = commit.sha;
-    li.style.padding = "10px 14px";
-    li.style.borderBottom = "1px solid var(--border-default)";
-    li.style.cursor = "pointer";
-    if (commit.sha === state.selectedSha) {
-      li.style.background = "var(--bg-elevated)";
+    li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", String(isSelected));
+
+    const topRow = document.createElement("div");
+    topRow.className = "commit-item-top";
+
+    const badgesWrap = document.createElement("div");
+    badgesWrap.className = "commit-badges";
+
+    const badgeSpan = document.createElement("span");
+    badgeSpan.className = `change-badge ${badge.className}`;
+    badgeSpan.textContent = badge.label;
+    badgesWrap.appendChild(badgeSpan);
+
+    for (const taskId of commit.task_ids || []) {
+      const taskSpan = document.createElement("span");
+      taskSpan.className = "task-pill";
+      taskSpan.textContent = taskId;
+      badgesWrap.appendChild(taskSpan);
     }
-    li.textContent = `${commit.short_sha} ${commit.subject}`;
-    li.addEventListener("click", () => {
-      state.selectedSha = commit.sha;
-      renderCommitListBasic();
-      els.commitSummary.textContent = `${commit.short_sha}: ${commit.subject}`;
-    });
+
+    const reviewLabel = document.createElement("label");
+    reviewLabel.className = "reviewed-toggle";
+    reviewLabel.addEventListener("click", (e) => e.stopPropagation());
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = isReviewed;
+    checkbox.setAttribute("aria-label", `Mark ${commit.short_sha} as reviewed`);
+    checkbox.addEventListener("change", () => toggleReviewed(commit.sha));
+
+    const reviewText = document.createElement("span");
+    reviewText.textContent = "Reviewed";
+    reviewLabel.append(checkbox, reviewText);
+
+    topRow.append(badgesWrap, reviewLabel);
+
+    const subjectEl = document.createElement("div");
+    subjectEl.className = "commit-subject";
+    subjectEl.textContent = commit.subject;
+
+    const metaEl = document.createElement("div");
+    metaEl.className = "commit-meta-line";
+    const shaSpan = document.createElement("span");
+    shaSpan.className = "commit-sha";
+    shaSpan.textContent = commit.short_sha;
+    const authorSpan = document.createElement("span");
+    authorSpan.textContent = commit.author;
+    metaEl.append(shaSpan, authorSpan);
+
+    li.append(topRow, subjectEl, metaEl);
+    li.addEventListener("click", () => selectCommit(commit.sha));
     els.commitList.appendChild(li);
+
+    if (isSelected && typeof li.scrollIntoView === "function") {
+      li.scrollIntoView({ block: "nearest" });
+    }
   }
 }
 
@@ -126,7 +245,10 @@ async function loadCommits() {
     const data = await fetchJson(`/api/commits?${params.toString()}`);
     state.commits = data.commits || [];
     state.selectedSha = state.commits.length > 0 ? state.commits[0].sha : null;
-    renderCommitListBasic();
+    renderCommitList();
+    if (state.selectedSha) {
+      selectCommit(state.selectedSha);
+    }
   } catch (err) {
     showError(err.message);
   }
@@ -183,6 +305,33 @@ els.headSelect.addEventListener("change", () => {
 
 els.reloadBtn.addEventListener("click", () => {
   init();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+  const target = event.target;
+  if (
+    target &&
+    (target.isContentEditable ||
+      target.tagName === "SELECT" ||
+      target.tagName === "TEXTAREA" ||
+      (target.tagName === "INPUT" && target.type !== "checkbox"))
+  ) {
+    return;
+  }
+
+  if (event.key === "j" || event.key === "ArrowDown") {
+    event.preventDefault();
+    selectCommitByOffset(1);
+  } else if (event.key === "k" || event.key === "ArrowUp") {
+    event.preventDefault();
+    selectCommitByOffset(-1);
+  } else if (event.key === "r") {
+    event.preventDefault();
+    toggleReviewed(state.selectedSha);
+  }
 });
 
 init();

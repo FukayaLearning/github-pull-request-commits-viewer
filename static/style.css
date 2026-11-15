@@ -184,6 +184,110 @@ kbd {
   flex: 1;
 }
 
+.commit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-default);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.commit-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.commit-item.active {
+  background: var(--bg-elevated);
+  border-left-color: var(--accent-blue);
+}
+
+.commit-item.reviewed .commit-subject {
+  color: var(--text-secondary);
+}
+
+.commit-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.commit-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.change-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.badge-command {
+  background: rgba(163, 113, 247, 0.16);
+  color: #d2a8ff;
+  border-color: rgba(163, 113, 247, 0.45);
+}
+
+.badge-manual {
+  background: rgba(88, 166, 255, 0.14);
+  color: #79c0ff;
+  border-color: rgba(88, 166, 255, 0.4);
+}
+
+.badge-test {
+  background: rgba(63, 185, 80, 0.15);
+  color: #7ee787;
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.task-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(210, 153, 34, 0.15);
+  color: #e3b341;
+  border: 1px solid rgba(210, 153, 34, 0.35);
+}
+
+.reviewed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.commit-subject {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.commit-meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.commit-sha {
+  font-family: var(--font-mono);
+}
+
 .main-review-pane {
   display: flex;
   flex-direction: column;
