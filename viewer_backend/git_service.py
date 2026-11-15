@@ -17,7 +17,24 @@ _DEFAULT_BASE_CANDIDATES = ("main", "master", "develop", "origin/main", "origin/
 
 
 class GitRepositoryError(Exception):
-    """Raised when the target directory is not a valid Git repository or git fails."""
+    """Raised when the target directory is not a valid Git repository."""
+
+
+class GitCommandError(Exception):
+    """Raised when executing a git subprocess fails unexpectedly."""
+
+
+_INVALID_REF_STDERR_TOKENS = (
+    "unknown revision",
+    "bad revision",
+    "ambiguous argument",
+    "bad object",
+)
+
+
+def _is_invalid_ref_stderr(stderr: str) -> bool:
+    lower = stderr.lower()
+    return any(token in lower for token in _INVALID_REF_STDERR_TOKENS)
 
 
 def validate_git_ref(ref: str) -> str:
@@ -60,9 +77,9 @@ class GitService:
                 timeout=15,
             )
         except OSError as exc:
-            raise GitRepositoryError(f"Failed to execute git: {exc}") from exc
+            raise GitCommandError(f"Failed to execute git: {exc}") from exc
         except subprocess.TimeoutExpired as exc:
-            raise GitRepositoryError(f"Git command timed out: {exc}") from exc
+            raise GitCommandError(f"Git command timed out: {exc}") from exc
 
     def _ensure_git_repo(self) -> Path:
         proc = self._run_git(["rev-parse", "--show-toplevel"])
@@ -206,7 +223,9 @@ class GitService:
         )
         if proc.returncode != 0:
             detail = proc.stderr.strip() or f"Failed to list commits for {safe_base}..{safe_head}"
-            raise GitRepositoryError(detail)
+            if _is_invalid_ref_stderr(detail):
+                raise ValueError(detail)
+            raise GitCommandError(detail)
 
         commits: list[dict[str, Any]] = []
         for raw_record in proc.stdout.split("\x1e"):
@@ -241,7 +260,9 @@ class GitService:
         status_proc = self._run_git(["show", "--name-status", "--format=", safe_sha])
         if status_proc.returncode != 0:
             detail = status_proc.stderr.strip() or f"Failed to inspect commit {safe_sha}"
-            raise GitRepositoryError(detail)
+            if _is_invalid_ref_stderr(detail):
+                raise ValueError(detail)
+            raise GitCommandError(detail)
 
         status_map: dict[str, str] = {}
         for line in status_proc.stdout.splitlines():
@@ -256,7 +277,7 @@ class GitService:
         numstat_proc = self._run_git(["show", "--numstat", "--format=", safe_sha])
         if numstat_proc.returncode != 0:
             detail = numstat_proc.stderr.strip() or f"Failed to get numstat for {safe_sha}"
-            raise GitRepositoryError(detail)
+            raise GitCommandError(detail)
 
         files: list[dict[str, Any]] = []
         for line in numstat_proc.stdout.splitlines():
@@ -287,7 +308,7 @@ class GitService:
         patch_proc = self._run_git(patch_args)
         if patch_proc.returncode != 0:
             detail = patch_proc.stderr.strip() or f"Failed to get diff for {safe_sha}"
-            raise GitRepositoryError(detail)
+            raise GitCommandError(detail)
 
         return {
             "sha": safe_sha,

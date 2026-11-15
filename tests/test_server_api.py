@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from server import create_server
+from viewer_backend.git_service import GitCommandError, GitRepositoryError
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -116,6 +117,26 @@ class TestServerAPI(unittest.TestCase):
         with self.assertRaises(HTTPError) as ctx:
             urlopen(url, timeout=5)
         self.assertEqual(ctx.exception.code, 400)
+
+    def test_invalid_repo_returns_400(self) -> None:
+        url = f"http://127.0.0.1:{self.port}/api/repo-info"
+        with patch(
+            "viewer_backend.git_service.GitService.get_repo_info",
+            side_effect=GitRepositoryError("Not a git repository"),
+        ):
+            with self.assertRaises(HTTPError) as ctx:
+                urlopen(url, timeout=5)
+            self.assertEqual(ctx.exception.code, 400)
+
+    def test_git_command_error_returns_500(self) -> None:
+        url = f"http://127.0.0.1:{self.port}/api/commits?base=main&head=feature/api"
+        with patch(
+            "viewer_backend.git_service.GitService.get_commits",
+            side_effect=GitCommandError("git subprocess crashed"),
+        ):
+            with self.assertRaises(HTTPError) as ctx:
+                urlopen(url, timeout=5)
+            self.assertEqual(ctx.exception.code, 500)
 
 
 if __name__ == "__main__":

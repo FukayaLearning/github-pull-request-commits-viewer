@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from viewer_backend.git_service import (
+    GitCommandError,
     GitRepositoryError,
     GitService,
     validate_commit_sha,
@@ -224,6 +225,20 @@ class TestGitServiceCommitsAndDiff(unittest.TestCase):
         service = GitService(self.repo_dir)
         with self.assertRaises(ValueError):
             service.get_commits("--all", "HEAD")
+
+    def test_get_commits_unknown_revision_raises_value_error(self) -> None:
+        service = GitService(self.repo_dir)
+        with self.assertRaises(ValueError):
+            service.get_commits("nonexistent-branch", "HEAD")
+
+    def test_git_subprocess_failure_raises_git_command_error(self) -> None:
+        service = GitService(self.repo_dir)
+        with patch(
+            "viewer_backend.git_service.subprocess.run",
+            side_effect=OSError("git binary missing"),
+        ):
+            with self.assertRaises(GitCommandError):
+                service.get_repo_info()
 
 
 if __name__ == "__main__":

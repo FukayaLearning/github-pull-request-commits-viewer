@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from viewer_backend.git_service import GitRepositoryError, GitService
+from viewer_backend.git_service import GitCommandError, GitRepositoryError, GitService
 
 DEFAULT_STATIC_DIR = Path(__file__).resolve().parent / "static"
 _COMMIT_DIFF_PATH_RE = re.compile(r"^/api/commits/([^/]+)/diff$")
@@ -77,10 +77,10 @@ class ViewerHTTPRequestHandler(SimpleHTTPRequestHandler):
                 return
 
             self._send_json(HTTPStatus.NOT_FOUND, {"error": f"Unknown API endpoint: {path}"})
-        except ValueError as exc:
+        except (ValueError, GitRepositoryError) as exc:
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
-        except GitRepositoryError as exc:
-            self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+        except GitCommandError as exc:
+            self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
         except Exception as exc:  # noqa: BLE001
             self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
 
