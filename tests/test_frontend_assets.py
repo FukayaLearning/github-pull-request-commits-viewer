@@ -88,6 +88,18 @@ class TestFrontendAssets(unittest.TestCase):
         ]:
             self.assertIn(token, js)
 
+    def test_vendored_diff2html_assets_served_without_external_cdn(self) -> None:
+        html = self._get_text("/")
+        self.assertNotIn("https://cdn.jsdelivr.net", html)
+        self.assertIn("/vendor/diff2html/diff2html.min.css", html)
+        self.assertIn("/vendor/diff2html/diff2html-ui.min.js", html)
+
+        css = self._get_text("/vendor/diff2html/diff2html.min.css")
+        self.assertIn(".d2h-code-linenumber", css)
+
+        js = self._get_text("/vendor/diff2html/diff2html-ui.min.js")
+        self.assertIn("Diff2HtmlUI", js)
+
 
 if __name__ == "__main__":
     unittest.main()
