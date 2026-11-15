@@ -58,6 +58,8 @@ class TestFrontendAssets(unittest.TestCase):
         self.assertIn(".badge-command", css)
         self.assertIn(".badge-manual", css)
         self.assertIn(".badge-test", css)
+        self.assertIn(".d2h-code-linenumber", css)
+        self.assertIn("position: sticky", css)
 
     def test_app_js_contains_commit_menu_badges_shortcuts_and_storage(self) -> None:
         js = self._get_text("/app.js")
