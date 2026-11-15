@@ -1,0 +1,23 @@
+schema: usdm
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+context: |
+  すべてのOpenSpecアーティファクト（proposal.md, usdm.md, specs/**/spec.md, design.md, tasks.md）は日本語で記述すること。
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - "## Why セクションは50文字以上1000文字以内で背景・目的を簡潔に記述すること"
+  usdm:
+    - "affordd-prj/usdm-schema のマークダウン形式定義（H1〜H6の固定見出し階層、全角山括弧＜＞、□□□ラベル）を厳守すること"
+  specs:
+    - "openspec validate --strict を通過させるため、各 Requirement 本文は500文字以内に収め、文中に必ず半角大文字の SHALL または MUST（例: 〜しなければならない（SHALL）。）を含めること"
+    - "各 Scenario には必ず **WHEN**（または **GIVEN**）と **THEN** の両方を含めること"
+    - "### Requirement: の見出しには変更固有の連番（R01等）を含めず恒久的な名前とし、直下の行に **USDM**: R01-01 のメタデータ行として要求IDを記録すること"
+
+# Per-operation guidance (optional)
+operations:
+  apply:
+    guidance:
+      - "実装・テスト完了時に usdm.md の該当仕様ラベル（□□□ → ■■□ / ■■■）も同期して更新すること"
