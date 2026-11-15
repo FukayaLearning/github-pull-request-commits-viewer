@@ -11,12 +11,20 @@ const state = {
   diffMode: "side-by-side",
   ignoreWhitespace: false,
   reviewedMap: loadReviewedMap(),
+  commitsRequestSeq: 0,
+  diffRequestSeq: 0,
+  commitsAbortController: null,
+  diffAbortController: null,
 };
 
 function loadReviewedMap() {
   try {
     const raw = window.localStorage.getItem(REVIEWED_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -70,8 +78,8 @@ function showError(message) {
   els.globalError.hidden = false;
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url, { cache: "no-store" });
+async function fetchJson(url, signal) {
+  const response = await fetch(url, { cache: "no-store", signal });
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || `Request failed: ${response.status}`);
@@ -221,7 +229,12 @@ function scrollToFileDiff(filePath) {
   const d2hHeaders = els.diffViewer.querySelectorAll(".d2h-file-wrapper");
   for (const wrapper of d2hHeaders) {
     const nameEl = wrapper.querySelector(".d2h-file-name");
-    if (nameEl && nameEl.textContent && nameEl.textContent.trim().endsWith(filePath)) {
+    const nameText = nameEl && nameEl.textContent ? nameEl.textContent.trim() : "";
+    if (
+      nameText === filePath ||
+      nameText.endsWith(`/${filePath}`) ||
+      nameText.endsWith(`→ ${filePath}`)
+    ) {
       wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -326,26 +339,51 @@ function renderDiff(diffText) {
 }
 
 async function loadCommitDiff(sha) {
+  if (state.diffAbortController) {
+    state.diffAbortController.abort();
+    state.diffAbortController = null;
+  }
+
+  const requestSeq = ++state.diffRequestSeq;
+  const requestedWhitespace = state.ignoreWhitespace;
+
   if (!sha) {
     state.currentDiff = null;
     renderChangedFiles([]);
     renderDiff("");
     return;
   }
+
+  const controller = new AbortController();
+  state.diffAbortController = controller;
   els.diffViewer.innerHTML = '<p class="empty-state">Diff を読み込み中...</p>';
+
   try {
     const params = new URLSearchParams({
-      ignore_whitespace: String(state.ignoreWhitespace),
+      ignore_whitespace: String(requestedWhitespace),
     });
-    const data = await fetchJson(`/api/commits/${encodeURIComponent(sha)}/diff?${params.toString()}`);
-    if (state.selectedSha !== sha) {
+    const data = await fetchJson(
+      `/api/commits/${encodeURIComponent(sha)}/diff?${params.toString()}`,
+      controller.signal
+    );
+    if (
+      requestSeq !== state.diffRequestSeq ||
+      state.selectedSha !== sha ||
+      state.ignoreWhitespace !== requestedWhitespace
+    ) {
       return;
     }
+    showError("");
     state.currentDiff = data;
     renderChangedFiles(data.files || []);
     renderDiff(data.diff || "");
   } catch (err) {
-    showError(err.message);
+    if (err && err.name === "AbortError") {
+      return;
+    }
+    if (requestSeq === state.diffRequestSeq) {
+      showError(err.message);
+    }
   }
 }
 
@@ -455,18 +493,43 @@ async function loadCommits() {
   if (!state.base || !state.head) {
     return;
   }
+  if (state.commitsAbortController) {
+    state.commitsAbortController.abort();
+    state.commitsAbortController = null;
+  }
+
+  const requestSeq = ++state.commitsRequestSeq;
+  const requestedBase = state.base;
+  const requestedHead = state.head;
+  const controller = new AbortController();
+  state.commitsAbortController = controller;
+
   showError("");
   try {
-    const params = new URLSearchParams({ base: state.base, head: state.head });
-    const data = await fetchJson(`/api/commits?${params.toString()}`);
+    const params = new URLSearchParams({ base: requestedBase, head: requestedHead });
+    const data = await fetchJson(`/api/commits?${params.toString()}`, controller.signal);
+    if (
+      requestSeq !== state.commitsRequestSeq ||
+      state.base !== requestedBase ||
+      state.head !== requestedHead
+    ) {
+      return;
+    }
     state.commits = data.commits || [];
     state.selectedSha = state.commits.length > 0 ? state.commits[0].sha : null;
     renderCommitList();
     if (state.selectedSha) {
       selectCommit(state.selectedSha);
+    } else {
+      loadCommitDiff(null);
     }
   } catch (err) {
-    showError(err.message);
+    if (err && err.name === "AbortError") {
+      return;
+    }
+    if (requestSeq === state.commitsRequestSeq) {
+      showError(err.message);
+    }
   }
 }
 

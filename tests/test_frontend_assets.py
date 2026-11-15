@@ -100,6 +100,19 @@ class TestFrontendAssets(unittest.TestCase):
         js = self._get_text("/vendor/diff2html/diff2html-ui.min.js")
         self.assertIn("Diff2HtmlUI", js)
 
+    def test_app_js_guards_against_stale_async_responses(self) -> None:
+        js = self._get_text("/app.js")
+        for token in [
+            "commitsRequestSeq",
+            "diffRequestSeq",
+            "AbortController",
+            "AbortError",
+            "requestedWhitespace",
+            "requestedBase",
+            "requestedHead",
+        ]:
+            self.assertIn(token, js)
+
 
 if __name__ == "__main__":
     unittest.main()
