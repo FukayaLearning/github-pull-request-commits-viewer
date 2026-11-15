@@ -9,7 +9,7 @@
 
 ## 2. フロントエンドUI（3ペイン構成・ビルドレスWeb UI）の実装
 
-- [ ] 2.1 [S02-01-01, S02-01-02] `static/index.html`, `static/style.css`, `static/app.js` の3ペイン基本骨格とヘッダー（リポジトリ・ブランチ表示、PRドロップダウン選択、および `base` / `head` ブランチ直接指定による非同期コミット一覧切り替え）を実装する（検証: サーバー経由で `/` を取得し、ヘッダーDOM要素と `/api/repo-info`・`/api/prs` 連携スクリプトが正しく構成されていることを確認する）。
+- [x] 2.1 [S02-01-01, S02-01-02] `static/index.html`, `static/style.css`, `static/app.js` の3ペイン基本骨格とヘッダー（リポジトリ・ブランチ表示、PRドロップダウン選択、および `base` / `head` ブランチ直接指定による非同期コミット一覧切り替え）を実装する（検証: サーバー経由で `/` を取得し、ヘッダーDOM要素と `/api/repo-info`・`/api/prs` 連携スクリプトが正しく構成されていることを確認する）。
 - [ ] 2.2 [S02-02-01, S02-02-02, S02-02-03, S02-02-04] 左ペイン（Commit Menu）に時系列コミット一覧、変更種別バッジ（🤖 Command / ✍️ Manual / ✅ Test）とOpenSpecタスク表示、`j`/`k` および `↑`/`↓` キーによる即時切り替え、`r` キーおよびチェックボックスによる `localStorage` 永続化付き「確認済み（Reviewed）」進捗管理を実装する（検証: `static/app.js` のキーボードイベント・`localStorage` 制御と左ペイン描画をテスト検証する）。
 - [ ] 2.3 [S02-03-01, S02-03-02, S02-04-01, S02-04-02, S02-04-03] メインペイン上部のコミットサマリカード（`Why` / `What` / `Task` / `Verification` と `Executed-Command` 等幅強調表示）および下部の変更ファイル一覧（クリックで該当ファイルDiffへスクロール移動）とDiff2HtmlによるSplit/Unified切替・空白無視（`ignore_whitespace`）切替対応Diffビューアを実装する（検証: コミット選択時に `/api/commits/<sha>/diff` が呼び出され、サマリカード・ファイル一覧・Split/Unified切替・空白無視トグルが機能することを検証する）。
 
