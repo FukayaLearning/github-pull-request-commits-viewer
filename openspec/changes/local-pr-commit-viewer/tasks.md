@@ -15,7 +15,7 @@
 
 ## 3. CLI起動オプションとエンドツーエンド検証の整備
 
-- [ ] 3.1 [S03-01, S03-02] `server.py` に `--repo` / `--port` 引数および `REPO_PATH` / `PORT` 環境変数による設定機能と `README.md` の起動手順を追加し、テスト用コミット履歴を用いたE2E検証テストを実行する（検証: `python3 -m unittest discover -s tests -v` および `python3 server.py --help` が正常終了すること）。
+- [x] 3.1 [S03-01, S03-02] `server.py` に `--repo` / `--port` 引数および `REPO_PATH` / `PORT` 環境変数による設定機能と `README.md` の起動手順を追加し、テスト用コミット履歴を用いたE2E検証テストを実行する（検証: `python3 -m unittest discover -s tests -v` および `python3 server.py --help` が正常終了すること）。
 
 ## Workflow follow-up
 

@@ -41,6 +41,9 @@ python3 server.py --repo /path/to/your/repo --port 8765
 
 # 環境変数での指定にも対応
 REPO_PATH=/path/to/your/repo PORT=8765 python3 server.py
+
+# CLIヘルプの表示
+python3 server.py --help
 ```
 
 起動後、ブラウザで `http://localhost:8000`（または指定したポート）を開きます。

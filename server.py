@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import re
 from functools import partial
 from http import HTTPStatus
@@ -109,11 +111,40 @@ def create_server(
     return ThreadingHTTPServer((host, port), handler_cls)
 
 
-def main() -> None:
-    """Start the HTTP server with default settings."""
-    server = create_server()
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse CLI arguments with environment variable fallbacks."""
+    default_repo = os.environ.get("REPO_PATH", ".")
+    default_port = int(os.environ.get("PORT", "8000"))
+    default_host = os.environ.get("HOST", "127.0.0.1")
+
+    parser = argparse.ArgumentParser(
+        description="Local PR and MR Commits Viewer - zero-dependency commit review server",
+    )
+    parser.add_argument(
+        "--repo",
+        default=default_repo,
+        help="Path to the target local Git repository (env: REPO_PATH, default: .)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=default_port,
+        help="Port number to listen on (env: PORT, default: 8000)",
+    )
+    parser.add_argument(
+        "--host",
+        default=default_host,
+        help="Host interface to bind (env: HOST, default: 127.0.0.1)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Start the HTTP server using CLI arguments or environment variables."""
+    args = parse_args(argv)
+    server = create_server(repo_path=args.repo, port=args.port, host=args.host)
     host, port = server.server_address[:2]
-    print(f"Serving Local PR and MR Commits Viewer at http://{host}:{port}")
+    print(f"Serving Local PR and MR Commits Viewer for {args.repo} at http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
