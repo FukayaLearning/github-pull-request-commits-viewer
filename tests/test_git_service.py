@@ -135,5 +135,96 @@ class TestGitServiceRepoAndPrs(unittest.TestCase):
             validate_commit_sha("not-a-sha!")
 
 
+class TestGitServiceCommitsAndDiff(unittest.TestCase):
+    """Tests for get_commits and get_commit_diff."""
+
+    def setUp(self) -> None:
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.repo_dir = Path(self._tmpdir.name) / "diff-repo"
+        self.repo_dir.mkdir()
+        _git(self.repo_dir, "init", "-b", "main")
+        _git(self.repo_dir, "config", "user.name", "Test User")
+        _git(self.repo_dir, "config", "user.email", "test@example.com")
+        (self.repo_dir / "app.py").write_text("def greet():\n    return 'hello'\n", encoding="utf-8")
+        _git(self.repo_dir, "add", "app.py")
+        _git(self.repo_dir, "commit", "-m", "chore: initial app")
+
+        _git(self.repo_dir, "checkout", "-b", "feature/diff-test")
+        (self.repo_dir / "app.py").write_text(
+            "def greet(name='world'):\n    return f'hello {name}'\n",
+            encoding="utf-8",
+        )
+        _git(self.repo_dir, "add", "app.py")
+        _git(
+            self.repo_dir,
+            "commit",
+            "-m",
+            "feat(app): support name parameter",
+            "-m",
+            "Why: 挨拶対象を指定できるようにするため\nTask: 1.3 [S01-03-01]\nExecuted-Command: manual",
+        )
+        self.first_sha = _git(self.repo_dir, "rev-parse", "HEAD")
+
+        # Second commit with whitespace-only change in app.py and a new test file
+        (self.repo_dir / "app.py").write_text(
+            "def greet(name='world'):\n        return f'hello {name}'\n",
+            encoding="utf-8",
+        )
+        (self.repo_dir / "test_app.py").write_text("assert True\n", encoding="utf-8")
+        _git(self.repo_dir, "add", "app.py", "test_app.py")
+        _git(
+            self.repo_dir,
+            "commit",
+            "-m",
+            "style: reindent with formatter",
+            "-m",
+            "Executed-Command: python3 -m autopep8 -i app.py",
+        )
+        self.second_sha = _git(self.repo_dir, "rev-parse", "HEAD")
+
+    def tearDown(self) -> None:
+        self._tmpdir.cleanup()
+
+    def test_get_commits_chronological_with_trailers(self) -> None:
+        service = GitService(self.repo_dir)
+        commits = service.get_commits("main", "feature/diff-test")
+        self.assertEqual(len(commits), 2)
+
+        self.assertEqual(commits[0]["sha"], self.first_sha)
+        self.assertEqual(commits[0]["subject"], "feat(app): support name parameter")
+        self.assertEqual(commits[0]["change_type"], "manual")
+        self.assertEqual(commits[0]["task_ids"], ["S01-03-01"])
+        self.assertEqual(commits[0]["trailers"]["why"], "挨拶対象を指定できるようにするため")
+
+        self.assertEqual(commits[1]["sha"], self.second_sha)
+        self.assertEqual(commits[1]["change_type"], "command")
+        self.assertEqual(
+            commits[1]["trailers"]["executed_command"],
+            "python3 -m autopep8 -i app.py",
+        )
+
+    def test_get_commit_diff_and_ignore_whitespace(self) -> None:
+        service = GitService(self.repo_dir)
+
+        normal_diff = service.get_commit_diff(self.second_sha, ignore_whitespace=False)
+        self.assertEqual(normal_diff["sha"], self.second_sha)
+        self.assertFalse(normal_diff["ignore_whitespace"])
+        file_paths = [f["path"] for f in normal_diff["files"]]
+        self.assertIn("app.py", file_paths)
+        self.assertIn("test_app.py", file_paths)
+        self.assertIn("-    return f'hello {name}'", normal_diff["diff"])
+        self.assertIn("+        return f'hello {name}'", normal_diff["diff"])
+
+        ws_ignored_diff = service.get_commit_diff(self.second_sha, ignore_whitespace=True)
+        self.assertTrue(ws_ignored_diff["ignore_whitespace"])
+        self.assertNotIn("+        return f'hello {name}'", ws_ignored_diff["diff"])
+        self.assertIn("diff --git a/test_app.py b/test_app.py", ws_ignored_diff["diff"])
+
+    def test_get_commits_invalid_ref_raises_value_error(self) -> None:
+        service = GitService(self.repo_dir)
+        with self.assertRaises(ValueError):
+            service.get_commits("--all", "HEAD")
+
+
 if __name__ == "__main__":
     unittest.main()

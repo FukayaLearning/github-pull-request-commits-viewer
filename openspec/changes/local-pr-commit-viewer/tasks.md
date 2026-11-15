@@ -4,7 +4,7 @@
 
 - [x] 1.1 [S01-03-02, S01-03-03] `viewer_backend/parser.py` と単体テスト `tests/test_parser.py` を作成し、コミットメッセージ本文から `Issue:`, `Task:`, `Why:`, `What:`, `Executed-Command:`, `Verification:` を正規表現で抽出する関数および変更種別（`Executed-Command` が `"manual"` 以外の時は `command`、テスト時は `test`、それ以外は `manual`）判定ロジックを実装する（検証: `python3 -m unittest tests/test_parser.py` がパスすること）。
 - [x] 1.2 [S01-01-01, S01-01-02, S01-02-01, S01-02-02] `viewer_backend/git_service.py` と単体テスト `tests/test_git_service.py` を作成し、リポジトリ名・現在ブランチ・ブランチ一覧取得（非Git時はエラー送出）および `gh pr list` 連携（未認証・オフライン・PR 0件時のローカル比較フォールバック付き）を実装する（検証: `python3 -m unittest tests/test_git_service.py` がパスすること）。
-- [ ] 1.3 [S01-03-01, S01-04-01, S01-04-02] `viewer_backend/git_service.py` に `base..head` 範囲の時系列コミット一覧取得と、指定コミットSHAの変更ファイル統計（`--numstat`）およびUnified Diff取得（`ignore_whitespace=true` 時の `-w` 対応含む）を追加し、テストを拡充する（検証: `python3 -m unittest tests/test_git_service.py` がパスすること）。
+- [x] 1.3 [S01-03-01, S01-04-01, S01-04-02] `viewer_backend/git_service.py` に `base..head` 範囲の時系列コミット一覧取得と、指定コミットSHAの変更ファイル統計（`--numstat`）およびUnified Diff取得（`ignore_whitespace=true` 時の `-w` 対応含む）を追加し、テストを拡充する（検証: `python3 -m unittest tests/test_git_service.py` がパスすること）。
 - [ ] 1.4 [S01-01-01, S01-02-01, S01-03-01, S01-04-01, S03-01] Python標準ライブラリ `http.server.ThreadingHTTPServer` を用いた `server.py` とAPI統合テスト `tests/test_server_api.py` を作成し、`GET /api/repo-info`, `GET /api/prs`, `GET /api/commits`, `GET /api/commits/<sha>/diff` および `static/` 配信を実装する（検証: `python3 -m unittest tests/test_server_api.py` がパスすること）。
 
 ## 2. フロントエンドUI（3ペイン構成・ビルドレスWeb UI）の実装
