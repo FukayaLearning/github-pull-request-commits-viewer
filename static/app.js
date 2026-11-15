@@ -7,6 +7,7 @@ const state = {
   head: "HEAD",
   commits: [],
   selectedSha: null,
+  currentDiff: null,
   diffMode: "side-by-side",
   ignoreWhitespace: false,
   reviewedMap: loadReviewedMap(),
@@ -51,6 +52,12 @@ const els = {
   commitList: document.getElementById("commit-list"),
   reviewProgress: document.getElementById("review-progress"),
   commitSummary: document.getElementById("commit-summary"),
+  diffFileCount: document.getElementById("diff-file-count"),
+  changedFiles: document.getElementById("changed-files"),
+  diffViewer: document.getElementById("diff-viewer"),
+  modeSplitBtn: document.getElementById("mode-split-btn"),
+  modeUnifiedBtn: document.getElementById("mode-unified-btn"),
+  ignoreWhitespaceCheckbox: document.getElementById("ignore-whitespace-checkbox"),
 };
 
 function showError(message) {
@@ -132,13 +139,222 @@ function toggleReviewed(sha) {
   renderCommitList();
 }
 
+function renderCommitSummary(commit) {
+  if (!commit) {
+    els.commitSummary.innerHTML = '<p class="empty-state">表示するコミットがありません。</p>';
+    return;
+  }
+
+  els.commitSummary.innerHTML = "";
+  const badge = getBadgeMeta(commit.change_type);
+
+  const header = document.createElement("div");
+  header.className = "summary-header";
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "summary-title-row";
+
+  const title = document.createElement("h2");
+  title.className = "summary-title";
+  title.textContent = commit.subject;
+
+  const badgeEl = document.createElement("span");
+  badgeEl.className = `change-badge ${badge.className}`;
+  badgeEl.textContent = badge.label;
+
+  titleRow.append(title, badgeEl);
+
+  const meta = document.createElement("div");
+  meta.className = "summary-meta";
+  meta.textContent = `SHA: ${commit.sha}  |  Author: ${commit.author}  |  Date: ${commit.date}`;
+
+  header.append(titleRow, meta);
+  els.commitSummary.appendChild(header);
+
+  const trailers = commit.trailers || {};
+  if (trailers.executed_command && trailers.executed_command.toLowerCase() !== "manual") {
+    const cmdBox = document.createElement("div");
+    cmdBox.className = "executed-command-box";
+
+    const cmdLabel = document.createElement("div");
+    cmdLabel.className = "executed-command-label";
+    cmdLabel.textContent = "🤖 Executed-Command (Mechanical Change)";
+
+    const cmdCode = document.createElement("code");
+    cmdCode.className = "executed-command-code";
+    cmdCode.textContent = trailers.executed_command;
+
+    cmdBox.append(cmdLabel, cmdCode);
+    els.commitSummary.appendChild(cmdBox);
+  }
+
+  const trailerRows = [
+    ["Task", trailers.task],
+    ["Why", trailers.why],
+    ["What", trailers.what],
+    ["Verification", trailers.verification],
+    ["Issue", trailers.issue],
+  ].filter(([, value]) => Boolean(value));
+
+  if (trailerRows.length > 0) {
+    const grid = document.createElement("div");
+    grid.className = "trailer-grid";
+    for (const [label, value] of trailerRows) {
+      const k = document.createElement("div");
+      k.className = "trailer-key";
+      k.textContent = label;
+      const v = document.createElement("div");
+      v.className = "trailer-val";
+      v.textContent = value;
+      grid.append(k, v);
+    }
+    els.commitSummary.appendChild(grid);
+  } else if (commit.body) {
+    const bodyPre = document.createElement("pre");
+    bodyPre.className = "commit-body-fallback";
+    bodyPre.textContent = commit.body;
+    els.commitSummary.appendChild(bodyPre);
+  }
+}
+
+function scrollToFileDiff(filePath) {
+  const d2hHeaders = els.diffViewer.querySelectorAll(".d2h-file-wrapper");
+  for (const wrapper of d2hHeaders) {
+    const nameEl = wrapper.querySelector(".d2h-file-name");
+    if (nameEl && nameEl.textContent && nameEl.textContent.trim().endsWith(filePath)) {
+      wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+  }
+  const plainBlocks = els.diffViewer.querySelectorAll("[data-file-path]");
+  for (const block of plainBlocks) {
+    if (block.dataset.filePath === filePath) {
+      block.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+  }
+}
+
+function renderChangedFiles(files) {
+  els.changedFiles.innerHTML = "";
+  els.diffFileCount.textContent = `${files.length} files`;
+  for (const file of files) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "file-chip";
+
+    const pathSpan = document.createElement("span");
+    pathSpan.textContent = file.path;
+
+    const addSpan = document.createElement("span");
+    addSpan.className = "stat-add";
+    addSpan.textContent = `+${file.additions}`;
+
+    const delSpan = document.createElement("span");
+    delSpan.className = "stat-del";
+    delSpan.textContent = `-${file.deletions}`;
+
+    chip.append(pathSpan, addSpan, delSpan);
+    chip.addEventListener("click", () => scrollToFileDiff(file.path));
+    els.changedFiles.appendChild(chip);
+  }
+}
+
+function renderPlainDiffFallback(diffText) {
+  els.diffViewer.innerHTML = "";
+  const sections = diffText.split(/(?=^diff --git )/m).filter((s) => s.trim());
+  if (sections.length === 0) {
+    els.diffViewer.innerHTML = '<p class="empty-state">差分はありません。</p>';
+    return;
+  }
+
+  for (const section of sections) {
+    const lines = section.split("\n");
+    const firstLine = lines[0] || "";
+    const match = firstLine.match(/^diff --git a\/(.+?) b\/(.+)$/);
+    const filePath = match ? match[2] : "diff";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "plain-diff-file";
+    wrapper.dataset.filePath = filePath;
+
+    const header = document.createElement("div");
+    header.className = "plain-diff-header";
+    header.textContent = filePath;
+
+    const pre = document.createElement("pre");
+    pre.className = "plain-diff-pre";
+    for (const line of lines) {
+      const span = document.createElement("span");
+      span.className = "diff-line";
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        span.classList.add("diff-line-add");
+      } else if (line.startsWith("-") && !line.startsWith("---")) {
+        span.classList.add("diff-line-del");
+      } else if (line.startsWith("@@")) {
+        span.classList.add("diff-line-hunk");
+      }
+      span.textContent = line;
+      pre.appendChild(span);
+    }
+    wrapper.append(header, pre);
+    els.diffViewer.appendChild(wrapper);
+  }
+}
+
+function renderDiff(diffText) {
+  if (!diffText || !diffText.trim()) {
+    els.diffViewer.innerHTML = '<p class="empty-state">この条件で表示できる差分はありません。</p>';
+    return;
+  }
+
+  if (typeof window.Diff2HtmlUI === "function") {
+    els.diffViewer.innerHTML = "";
+    const ui = new window.Diff2HtmlUI(els.diffViewer, diffText, {
+      drawFileList: false,
+      matching: "lines",
+      outputFormat: state.diffMode,
+      synchronisedScroll: true,
+      highlight: true,
+      colorScheme: "dark",
+    });
+    ui.draw();
+    return;
+  }
+
+  renderPlainDiffFallback(diffText);
+}
+
+async function loadCommitDiff(sha) {
+  if (!sha) {
+    state.currentDiff = null;
+    renderChangedFiles([]);
+    renderDiff("");
+    return;
+  }
+  els.diffViewer.innerHTML = '<p class="empty-state">Diff を読み込み中...</p>';
+  try {
+    const params = new URLSearchParams({
+      ignore_whitespace: String(state.ignoreWhitespace),
+    });
+    const data = await fetchJson(`/api/commits/${encodeURIComponent(sha)}/diff?${params.toString()}`);
+    if (state.selectedSha !== sha) {
+      return;
+    }
+    state.currentDiff = data;
+    renderChangedFiles(data.files || []);
+    renderDiff(data.diff || "");
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
 function selectCommit(sha) {
   state.selectedSha = sha;
   renderCommitList();
   const commit = state.commits.find((c) => c.sha === sha);
-  if (commit) {
-    els.commitSummary.textContent = `${commit.short_sha}: ${commit.subject}`;
-  }
+  renderCommitSummary(commit);
+  loadCommitDiff(sha);
 }
 
 function selectCommitByOffset(delta) {
@@ -305,6 +521,25 @@ els.headSelect.addEventListener("change", () => {
 
 els.reloadBtn.addEventListener("click", () => {
   init();
+});
+
+function setDiffMode(mode) {
+  state.diffMode = mode;
+  els.modeSplitBtn.classList.toggle("active", mode === "side-by-side");
+  els.modeUnifiedBtn.classList.toggle("active", mode === "line-by-line");
+  if (state.currentDiff) {
+    renderDiff(state.currentDiff.diff || "");
+  }
+}
+
+els.modeSplitBtn.addEventListener("click", () => setDiffMode("side-by-side"));
+els.modeUnifiedBtn.addEventListener("click", () => setDiffMode("line-by-line"));
+
+els.ignoreWhitespaceCheckbox.addEventListener("change", () => {
+  state.ignoreWhitespace = els.ignoreWhitespaceCheckbox.checked;
+  if (state.selectedSha) {
+    loadCommitDiff(state.selectedSha);
+  }
 });
 
 document.addEventListener("keydown", (event) => {

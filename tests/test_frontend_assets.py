@@ -73,6 +73,19 @@ class TestFrontendAssets(unittest.TestCase):
         ]:
             self.assertIn(token, js)
 
+    def test_app_js_contains_summary_and_diff_viewer_controls(self) -> None:
+        js = self._get_text("/app.js")
+        for token in [
+            "/diff?",
+            "ignore_whitespace",
+            "Diff2HtmlUI",
+            "side-by-side",
+            "line-by-line",
+            "executed-command-box",
+            "scrollIntoView",
+        ]:
+            self.assertIn(token, js)
+
 
 if __name__ == "__main__":
     unittest.main()
