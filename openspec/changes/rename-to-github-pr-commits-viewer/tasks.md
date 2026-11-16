@@ -24,7 +24,7 @@
 ## 2. フロントエンドUIとE2Eテストの更新
 
 - [x] 2.1 `static/index.html` の `<title>` と `.brand-title`、および `tests/test_e2e_cli.py` のタイトル検証アサーションを `GitHub Pull Request Commits Viewer` へ更新する。検証: `python3 -m unittest discover -s tests -v` がすべてパスすること。
-- [ ] 2.2 `static/app.js` の `REVIEWED_STORAGE_KEY` を `"github-pr-viewer:reviewed-commits"` へ変更し、`loadReviewedMap()` に旧キー `"local-pr-viewer:reviewed-commits"` からの読み込み・新キーへの移行フォールバックを実装する。検証: `python3 -m unittest discover -s tests -v` がすべてパスし、`static/app.js` に構文エラーがないこと。
+- [x] 2.2 `static/app.js` の `REVIEWED_STORAGE_KEY` を `"github-pr-viewer:reviewed-commits"` へ変更し、`loadReviewedMap()` に旧キー `"local-pr-viewer:reviewed-commits"` からの読み込み・新キーへの移行フォールバックを実装する。検証: `python3 -m unittest discover -s tests -v` がすべてパスし、`static/app.js` に構文エラーがないこと。
 
 ## 3. ドキュメント表記の更新
 

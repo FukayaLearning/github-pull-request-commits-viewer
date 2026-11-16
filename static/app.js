@@ -1,4 +1,5 @@
-const REVIEWED_STORAGE_KEY = "local-pr-viewer:reviewed-commits";
+const REVIEWED_STORAGE_KEY = "github-pr-viewer:reviewed-commits";
+const LEGACY_REVIEWED_STORAGE_KEY = "local-pr-viewer:reviewed-commits";
 
 const state = {
   repoInfo: null,
@@ -17,14 +18,26 @@ const state = {
   diffAbortController: null,
 };
 
+function parseReviewedMap(raw) {
+  if (!raw) {
+    return null;
+  }
+  const parsed = JSON.parse(raw);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+}
+
 function loadReviewedMap() {
   try {
-    const raw = window.localStorage.getItem(REVIEWED_STORAGE_KEY);
-    if (!raw) {
-      return {};
+    const current = parseReviewedMap(window.localStorage.getItem(REVIEWED_STORAGE_KEY));
+    if (current) {
+      return current;
     }
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    const legacy = parseReviewedMap(window.localStorage.getItem(LEGACY_REVIEWED_STORAGE_KEY));
+    if (legacy) {
+      window.localStorage.setItem(REVIEWED_STORAGE_KEY, JSON.stringify(legacy));
+      return legacy;
+    }
+    return {};
   } catch {
     return {};
   }
