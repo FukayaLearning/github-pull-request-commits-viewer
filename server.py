@@ -1,4 +1,4 @@
-"""Zero-dependency HTTP/API server for Local PR and MR Commits Viewer."""
+"""Zero-dependency HTTP/API server for GitHub Pull Request Commits Viewer."""
 
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     default_host = os.environ.get("HOST", "127.0.0.1")
 
     parser = argparse.ArgumentParser(
-        description="Local PR and MR Commits Viewer - zero-dependency commit review server",
+        description="GitHub Pull Request Commits Viewer - zero-dependency commit review server",
     )
     parser.add_argument(
         "--repo",
@@ -144,7 +144,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     server = create_server(repo_path=args.repo, port=args.port, host=args.host)
     host, port = server.server_address[:2]
-    print(f"Serving Local PR and MR Commits Viewer for {args.repo} at http://{host}:{port}")
+    print(f"Serving GitHub Pull Request Commits Viewer for {args.repo} at http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

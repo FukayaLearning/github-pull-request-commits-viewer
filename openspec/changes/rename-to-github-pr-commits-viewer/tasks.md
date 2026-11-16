@@ -19,7 +19,7 @@
 
 ## 1. バックエンド・CLI表記の更新
 
-- [ ] 1.1 `server.py`（モジュールdocstring、`argparse` の `description`、起動時出力メッセージ）および `viewer_backend/__init__.py`（パッケージdocstring）のプロジェクト名称を `GitHub Pull Request Commits Viewer` へ更新する。検証: `python3 server.py --help` および `python3 -m unittest discover -s tests -v` がすべてパスすること。
+- [x] 1.1 `server.py`（モジュールdocstring、`argparse` の `description`、起動時出力メッセージ）および `viewer_backend/__init__.py`（パッケージdocstring）のプロジェクト名称を `GitHub Pull Request Commits Viewer` へ更新する。検証: `python3 server.py --help` および `python3 -m unittest discover -s tests -v` がすべてパスすること。
 
 ## 2. フロントエンドUIとE2Eテストの更新
 

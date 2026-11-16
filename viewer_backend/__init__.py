@@ -1,1 +1,1 @@
-"""Backend package for Local PR and MR Commits Viewer."""
+"""Backend package for GitHub Pull Request Commits Viewer."""
