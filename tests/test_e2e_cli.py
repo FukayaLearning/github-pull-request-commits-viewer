@@ -106,7 +106,7 @@ class TestCliAndE2E(unittest.TestCase):
             try:
                 with urlopen(f"http://127.0.0.1:{port}/", timeout=5) as resp:
                     self.assertEqual(resp.status, 200)
-                    self.assertIn("Local PR &amp; MR Commits Viewer", resp.read().decode("utf-8"))
+                    self.assertIn("GitHub Pull Request Commits Viewer", resp.read().decode("utf-8"))
 
                 with urlopen(f"http://127.0.0.1:{port}/api/repo-info", timeout=5) as resp:
                     repo_info = json.loads(resp.read().decode("utf-8"))
