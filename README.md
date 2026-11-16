@@ -1,4 +1,4 @@
-# Local PR and MR Commits Viewer
+# GitHub Pull Request Commits Viewer
 
 OpenSpecのように「1サブタスク＝1コミット」で粒度を揃えて積み上げたGit履歴やPull Requestに対し、**コミット単位の差分・目的（Why / What）・紐づくタスク情報・実行コマンド（Git Trailers）** を1画面（3ペイン構成）で高速に切り替えながら閲覧・レビューできるローカル実行Webアプリケーションです。
 

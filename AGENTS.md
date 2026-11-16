@@ -1,6 +1,6 @@
 # AGENTS.md — AIエージェント向け開発・ワークフロー規約
 
-本ドキュメントは、このリポジトリ（Local PR and MR Commits Viewer）で設計・実装・テスト・レビューを行うすべてのAIエージェント（Antigravity / Claude Code / Hermes Agent 等）が遵守すべき規約を定義します。
+本ドキュメントは、このリポジトリ（GitHub Pull Request Commits Viewer / `github-pull-request-commits-viewer`）で設計・実装・テスト・レビューを行うすべてのAIエージェント（Antigravity / Claude Code / Hermes Agent 等）が遵守すべき規約を定義します。
 
 ---
 
@@ -71,7 +71,7 @@ python3 -m unittest discover -s tests -v
 python3 server.py --help
 
 # OpenSpecアーティファクトの厳格バリデーション
-openspec validate local-pr-commit-viewer --strict
+openspec validate <change-name> --strict
 ```
 
 ### 作業完了時およびアーカイブ時のUSDMラベル更新

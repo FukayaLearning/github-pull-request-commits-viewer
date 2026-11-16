@@ -28,7 +28,7 @@
 
 ## 3. ドキュメント表記の更新
 
-- [ ] 3.1 `README.md` のタイトル・説明表記および `AGENTS.md` のリポジトリ名・`openspec validate` コマンド例を新名称に合わせて更新する。検証: `python3 -m unittest discover -s tests -v` および `openspec validate rename-to-github-pr-commits-viewer --strict` がパスすること。
+- [x] 3.1 `README.md` のタイトル・説明表記および `AGENTS.md` のリポジトリ名・`openspec validate` コマンド例を新名称に合わせて更新する。検証: `python3 -m unittest discover -s tests -v` および `openspec validate rename-to-github-pr-commits-viewer --strict` がパスすること。
 
 ## Workflow follow-up
 
